@@ -19,6 +19,10 @@ RUN conda clean --all
 ARG PYTORCH
 ARG CUDA
 ARG MMCV
+
+RUN apt-get update
+RUN apt-get install wget ffmpeg libsm6 libxext6  -y
+
 RUN ["/bin/bash", "-c", "pip install mmcv-full==${MMCV} -f https://download.openmmlab.com/mmcv/dist/cu${CUDA//./}/torch${PYTORCH}/index.html"]
 
 # Install MMSegmentation
@@ -27,3 +31,10 @@ WORKDIR /mmsegmentation
 ENV FORCE_CUDA="1"
 RUN pip install -r requirements.txt
 RUN pip install --no-cache-dir -e .
+
+RUN wget https://github.com/git-lfs/git-lfs/releases/download/v3.0.1/git-lfs-linux-amd64-v3.0.1.tar.gz && \
+    mkdir git-lfs-linux-amd64-v3.0.1 && \
+    tar xf git-lfs-linux-amd64-v3.0.1.tar.gz --directory git-lfs-linux-amd64-v3.0.1 && \
+    ./git-lfs-linux-amd64-v3.0.1/install.sh && \
+    git lfs install && \
+    rm -rf git-lfs-linux-amd64-v3.0.1*
