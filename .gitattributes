@@ -1,1 +1,2 @@
 data/data/annotations.xml filter=lfs diff=lfs merge=lfs -text
+data/data/non_cropped/masks filter=lfs diff=lfs merge=lfs -text
