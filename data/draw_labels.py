@@ -31,7 +31,6 @@ def draw_lines(lines,width,height,line_thickness,color=(255,255,255)):
 
 
 def draw_lines_from_polylines(polylines, dst_folder):
-    label2polylines = defaultdict(list)
     polylines_roads = [x for x in polylines if x.getAttribute('label')=='road']
     polylines_looks_like = [x for x in polylines if x.getAttribute('label')=='looks_like']
 
