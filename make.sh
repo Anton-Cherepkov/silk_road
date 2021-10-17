@@ -6,7 +6,7 @@ set -e
 TAG_NAME=silkroad:v01-${USER}
 CONTAINER_NAME=silkroad_${USER}
 PROJECT_NAME=/app
-SSH_PORT=27035
+SSH_PORT=27025
 
 # Output colors
 NORMAL="\\033[0;39m"
