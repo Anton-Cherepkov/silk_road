@@ -1,4 +1,4 @@
-git statuspython3 data/crop_pathes.py \
+python3 data/crop_pathes.py \
     --names data/data/non_cropped/train.txt \
     --src_dataset_folder data/data/non_cropped \
     --dst_dataset_folder data/data/cropped_train \
