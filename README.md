@@ -30,5 +30,10 @@ data/draw_labels.py
 
 run
 ```
-data/crop_pathes.py
+data/crop.sh
+```
+
+run
+```
+data/make_split_for_crops.py
 ```
