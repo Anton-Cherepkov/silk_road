@@ -1,15 +1,14 @@
 import os
 import cv2
-import numpy
+import numpy as np
 from xml.dom import minidom
 import cv2  
+from pathlib import Path
+from collections import defaultdict
+from tqdm import tqdm
 
 
 def get_list_based_lines(polylines_list):
-
-    if len(polylines_list)==0:
-        return False
-
     lines = []
     for i in range(len(polylines_list)):
         temp_points = str(polylines_list[i].attributes['points'].value)
@@ -21,8 +20,8 @@ def get_list_based_lines(polylines_list):
     return lines
 
 
-def draw_lines(lines,width,height,line_thickness,color=(255,255,255)):
-    image = np.zeros((height,width,3), np.uint8)
+def draw_lines(lines,width,height,line_thickness,color=(255,)):
+    image = np.zeros((height,width), np.uint8)
     for line in lines:
         for i,point in enumerate(line[1:]):
             previous_point = line[i]
@@ -30,33 +29,37 @@ def draw_lines(lines,width,height,line_thickness,color=(255,255,255)):
     return image        
 
 
-def draw_lines_from_polylines(polylines):
-    polylines_roads = [x for x in polylines if x.getAttribute('label')=='road']
-    polylines_looks_like = [x for x in polylines if x.getAttribute('label')=='looks_like']
+def draw_lines_from_polylines(name, polylines, dst_folder):
+    label2curves = {
+        "looks_like": [],
+        "road": []
+    }
 
-    lines_roads = get_list_based_lines(polylines_roads)
-    lines_looks_like = get_list_based_lines(polylines_looks_like)
-    if lines_roads:
-        img = draw_lines(lines_roads,width,height,line_thickness)
-        cv2.imwrite('roads/id_{}.png'.format(img_id),img)
-    if lines_looks_like:
-        img = draw_lines(lines_looks_like,width,height,line_thickness)
-        cv2.imwrite('looks_like/id_{}.png'.format(img_id),img) 
+    for curves in polylines:
+        label2curves[curves.getAttribute("label")].append(curves)
+    
+    for label, curves in label2curves.items():
+        dst = dst_folder / f"{label}/{name}.png"
+        dst.parent.mkdir(exist_ok=True, parents=True)
 
+        img = draw_lines(get_list_based_lines(curves), width, height, line_thickness)
+        cv2.imwrite(str(dst), img)
+        
 
 width = 5000
 height = 5000
 line_thickness = 10
-path_to_xml = 'annotations.xml'
-# n = 30
+path_to_xml = 'data/data/annotations.xml'
+dst_folder = Path("data/data/non_cropped/masks")
+
 
 xmldoc = minidom.parse(path_to_xml)
 images = xmldoc.getElementsByTagName("image")
 
-for image in images:
-    img_id = image.getAttribute('id')
+for image in tqdm(images):
+    name = Path(image.getAttribute('name')).stem
     polylines = image.getElementsByTagName("polyline")
-    draw_lines_from_polylines(polylines)
+    draw_lines_from_polylines(name, polylines, dst_folder)
     
 
       
