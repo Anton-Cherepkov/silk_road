@@ -6,6 +6,12 @@ log_config = dict(
         # dict(type='TensorboardLoggerHook')
     ])
 # yapf:enable
+custom_imports = dict(
+    imports=[
+        "apis.pipelines",
+    ],
+    allow_failed_imports=False,
+)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
