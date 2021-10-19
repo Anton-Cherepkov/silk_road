@@ -1,9 +1,10 @@
 _base_ = [
     '../_base_/models/ocrnet_hr18.py',
-    '../_base_/datasets/pascal_voc12_aug.py', '../_base_/default_runtime.py',
+    '../_base_/datasets/hackathon.py', '../_base_/default_runtime.py',
     '../_base_/schedules/schedule_20k.py'
 ]
 norm_cfg = dict(type='SyncBN', requires_grad=True)
+num_classes = 2
 model = dict(decode_head=[
     dict(
         type='FCNHead',
@@ -15,7 +16,7 @@ model = dict(decode_head=[
         num_convs=1,
         concat_input=False,
         dropout_ratio=-1,
-        num_classes=2,
+        num_classes=num_classes,
         norm_cfg=norm_cfg,
         align_corners=False,
         loss_decode=dict(
@@ -28,7 +29,7 @@ model = dict(decode_head=[
         channels=512,
         ocr_channels=256,
         dropout_ratio=-1,
-        num_classes=2,
+        num_classes=num_classes,
         norm_cfg=norm_cfg,
         align_corners=False,
         loss_decode=dict(
