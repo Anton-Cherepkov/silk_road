@@ -38,3 +38,5 @@ RUN wget https://github.com/git-lfs/git-lfs/releases/download/v3.0.1/git-lfs-lin
     ./git-lfs-linux-amd64-v3.0.1/install.sh && \
     git lfs install && \
     rm -rf git-lfs-linux-amd64-v3.0.1*
+
+WORKDIR /app
