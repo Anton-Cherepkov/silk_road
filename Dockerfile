@@ -39,4 +39,7 @@ RUN wget https://github.com/git-lfs/git-lfs/releases/download/v3.0.1/git-lfs-lin
     git lfs install && \
     rm -rf git-lfs-linux-amd64-v3.0.1*
 
+COPY requirements.txt /requirements.txt
+RUN pip install -r /requirements.txt
+
 WORKDIR /app
