@@ -6,7 +6,6 @@ set -e
 TAG_NAME=silkroad:v01-${USER}
 CONTAINER_NAME=silkroad_${USER}
 PROJECT_NAME=/app
-WEB_UI_PORT=8011
 
 # Output colors
 NORMAL="\\033[0;39m"
@@ -31,6 +30,11 @@ build() {
 }
 
 # functions for run / stop web interface START
+WEB_UI_PORT=8011
+CONFIG="artifacts/ocrnet_hrnet.py"
+CHECKPOINT="artifacts/iter_3800.pth"
+FP16_MODE=False
+
 run_web_ui() {
     log "Running WEB interface..."
     log "It will be available at http://localhost:${WEB_UI_PORT}"
@@ -46,7 +50,7 @@ run_web_ui() {
       -v ${PWD}:${PROJECT_NAME} \
       --entrypoint '/bin/sh' \
       ${TAG_NAME} \
-      -c "python web_ui.py artifacts/ocrnet_hrnet.py artifacts/iter_3800.pth"
+      -c "python web_ui.py ${CONFIG} ${CHECKPOINT} --fp16 ${FP16_MODE}"
 }
 
 stop_web_ui() {

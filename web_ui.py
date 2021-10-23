@@ -15,11 +15,15 @@ from pathlib import Path
 from tqdm.auto import tqdm
 # import sns
 import mmcv
+from mmcv.runner import wrap_fp16_model
 import cv2
 import numpy as np
 
 from mmseg.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from mmseg.core.evaluation import get_palette
+
+
+FP_16_MODE = None
 
 
 def get_args():
@@ -28,6 +32,7 @@ def get_args():
     # parser.add_argument('output_folder', help="Folder to save masks & visualization")
     parser.add_argument('config', help='Config file')
     parser.add_argument('checkpoint', help='Checkpoint file')
+    parser.add_argument('--fp16', type=bool, default=False)
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
     args = parser.parse_args()
@@ -63,6 +68,12 @@ def init():
     cfg.model.test_cfg['stride'] = (200, 200)
     cfg.model.test_cfg['crop_size'] = (512, 512)
     model = init_segmentor(cfg, args.checkpoint, device=args.device)
+    global fp16_mode
+    if args.fp16:
+        wrap_fp16_model(model)
+        fp16_mode = "ON"
+    else:
+        fp16_mode = "OFF"
     return model
 
 
@@ -100,9 +111,9 @@ def upload_predict():
             render_template("index.html", image_loc=image_location) # show upload
             pred = predict(image_location, MODEL)
             cv2.imwrite('static/pred.png',pred)
-            return render_template("index.html", image_loc='static/pred.png')    
+            return render_template("index.html", image_loc='static/pred.png', fp16_mode=fp16_mode)
 
-    return render_template("index.html",prediction = 0, image_loc=None)
+    return render_template("index.html",prediction = 0, image_loc=None, fp16_mode=fp16_mode)
 
 
 if __name__=="__main__":
