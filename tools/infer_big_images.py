@@ -6,6 +6,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 
 import mmcv
+from mmcv.runner import wrap_fp16_model
 import cv2
 import numpy as np
 
@@ -21,6 +22,7 @@ def get_args():
     parser.add_argument('checkpoint', help='Checkpoint file')
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
+    parser.add_argument('--fp16', action="store_true")
     args = parser.parse_args()
     return args
 
@@ -55,6 +57,9 @@ def main():
     cfg.model.test_cfg['stride'] = (200, 200)
     cfg.model.test_cfg['crop_size'] = (512, 512)
     model = init_segmentor(cfg, args.checkpoint, device=args.device)
+    if args.fp16:
+        wrap_fp16_model(model)
+        print("FP16 mode ON")
 
     # output folders
     visualization_folder = os.path.join(
