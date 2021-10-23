@@ -20,7 +20,7 @@ def get_list_based_lines(polylines_list):
     return lines
 
 
-def draw_lines(lines,width,height,line_thickness,color=(255,)):
+def draw_lines(lines,width,height,line_thickness,color=(1,)):
     image = np.zeros((height,width), np.uint8)
     for line in lines:
         for i,point in enumerate(line[1:]):

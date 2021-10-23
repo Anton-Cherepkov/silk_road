@@ -1,0 +1,2 @@
+train_with_no_positive_pixels_5188.txt was generated using the following command:
+`comm -12 <(sort train_with_no_positive_pixels.txt) <(sort <(head -9000 number_of_predicted_road_pixels_sorted.txt | awk '{ print $1 }')) >train_with_no_positive_pixels_5188.txt`
