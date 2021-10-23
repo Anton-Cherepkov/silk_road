@@ -13,7 +13,7 @@ import glob
 import os
 from pathlib import Path
 from tqdm.auto import tqdm
-import sns
+# import sns
 import mmcv
 import cv2
 import numpy as np
@@ -69,8 +69,8 @@ def init():
 def predict(image,model):
     args = get_args()
     mask = inference_segmentor(model, image)[0]
-    heatmap = sns.heatmap(mask, annot=True, fmt="d")
-    heatmap.savefig('static/heatmap.png')
+    # heatmap = sns.heatmap(mask, annot=True, fmt="d")
+    # heatmap.savefig('static/heatmap.png')
     # cv2.imwrite('static/mask.png',mask)
     image_name = Path(image).stem
     masks_folder = 'static'
@@ -107,4 +107,4 @@ def upload_predict():
 
 if __name__=="__main__":
     MODEL = init()
-    app.run(port = 1200, debug = True)
+    app.run(port = 8011, debug = True, host="0.0.0.0")
