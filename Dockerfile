@@ -41,5 +41,4 @@ RUN wget https://github.com/git-lfs/git-lfs/releases/download/v3.0.1/git-lfs-lin
 
 COPY requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt
-
 WORKDIR /app

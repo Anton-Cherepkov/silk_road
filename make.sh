@@ -64,7 +64,7 @@ lfs_pull() {
 }
 
 run_inference() {
-    docker exec ${CONTAINER_NAME} bash -c "python3 tools/infer_big_images.py \"$1\" \"$2\" $CONFIG $CHECKPOINT && python3 tools/postprocess_masks.py --masks_folder \"$2\" --imgs_folder \"$1\" --output_folder \"$3\""
+    docker exec ${CONTAINER_NAME} bash -c "cd /app && python3 tools/infer_big_images.py \"$1\" \"$2\" $CONFIG $CHECKPOINT && python3 postprocess_masks.py --masks_folder \"$2\"/masks --imgs_folder \"$1\" --output_folder \"$3\""
 }
 
 exec() {
