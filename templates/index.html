@@ -15,12 +15,19 @@
 
 <body class="text-center">
   <form class="form-upload" method=post enctype=multipart/form-data>
-  <h1 class="h3 mb-3 font-weight-normal">Please upload image</h1>
+  <h1 class="h3 mb-3 font-weight-normal">Загрузить tif</h1>
   <input type="file" id="image" name ="image" class="form-control" required autofocus>
-  <button class="btn btn-lg btn-primary btn-block" type="submit">Predict</button>
   <br>
+  <button class="btn btn-lg btn-primary btn-block" type="submit">Обработать</button>
+  <br><br>
   {% if image_loc %}
-    <img class="mb-4" src="{{image_loc}}" alt="" width="512" height="512">
+    <h4>Результаты:</h4>
+    <br>
+    <a target="_blank" rel="noopener noreferrer" href="/download/{{visualization_path}}">Визуализация дорожек</a>
+    <br>
+    <a target="_blank" rel="noopener noreferrer" href="/download/{{mask_path}}">Маска вероятностей дорожек (numpy-массив)</a>
+    <br>
+    <!-- <img class="mb-4" src="{{image_loc}}" alt="" width="512" height="512"> -->
     <!-- <h3 class="h3 mb-3 font-weight-normal">Prediction: {{prediction}}</h3> -->
   {%endif%}  
 </form>
