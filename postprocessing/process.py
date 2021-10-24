@@ -159,6 +159,7 @@ def nx2polyline(G):
     
     return curves
 
+
 def draw_polyline(img, polyline):
     img = img.copy()
     for curve in polyline:
@@ -167,7 +168,7 @@ def draw_polyline(img, polyline):
         
     return img
 
-        
+    
 def polyline2shapefile(polyline: np.ndarray, path: str, tfw: TFWCoordinates, crs: str = "EPSG:32637"):
     schema = {
         "geometry": "LineString",
@@ -195,7 +196,17 @@ def zip_and_remove(folder):
     
     return folder + ".zip"
 
-if __name__ == "__main__":
+  
+def get_postprocessing_visualization(img, mask):
+    if isinstance(img, str):
+        img = cv2.imread(img)
+
+    _, _, G = img_to_ske_G(mask)
+    curves = nx2polyline(G)
+    postpocessing_visualization = draw_polyline(img, curves)
+    return postpocessing_visualization
+
+  if __name__ == "__main__":
     img = cv2.imread("3560-825.tif")
     mask = np.load("3560-825.npy")
     mask_postprocessed, ske, G = img_to_ske_G(mask)
@@ -212,3 +223,4 @@ if __name__ == "__main__":
     input()
     
     zip_and_remove("3560-825")
+

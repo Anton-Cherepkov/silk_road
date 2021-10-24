@@ -23,6 +23,8 @@ def get_args():
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
     parser.add_argument('--fp16', action="store_true")
+    parser.add_argument("--start_ix", type=int)
+    parser.add_argument("--end_ix", type=int)
     args = parser.parse_args()
     return args
 
@@ -45,7 +47,9 @@ def draw_mask(img, mask, color=(0, 0, 255)):
 
 
 def get_tif_images_in_folder(folder: str):
-    return glob.glob(os.path.join(folder, "*.tif"))
+    tif_imgs =  sorted(list(glob.glob(os.path.join(folder, "*.tif"))))
+    print(f"Found {len(tif_imgs)} tif images")
+    return tif_imgs
 
 
 def main():
@@ -74,7 +78,13 @@ def main():
         os.makedirs(folder, exist_ok=True)
 
     # inference
-    for image in tqdm(get_tif_images_in_folder(args.input_folder)):
+    imgs = list(get_tif_images_in_folder(args.input_folder))
+    if args.start_ix is not None:
+        assert args.end_ix is not None
+        imgs = imgs[args.start_ix:args.end_ix]
+        print(f"{len(imgs)} images will be processed")
+
+    for image in tqdm(imgs):
         mask = inference_segmentor(model, image)[0]
         img_with_mask = draw_mask(image, mask)
 
