@@ -1,13 +1,22 @@
+from dataclasses import dataclass
 import cv2
+from numpy.core.fromnumeric import shape
 from skimage.morphology import skeletonize, remove_small_objects, remove_small_holes, medial_axis
 from skimage.morphology import erosion, dilation, opening, closing, disk
 import numpy as np
 import networkx as nx
 import fiona
-import sknw
-from tfw import pixel_coord_to_world_coords, TFWCoordinates, read_tfw_file
+import postprocessing.sknw as sknw
+from postprocessing.tfw import pixel_coord_to_world_coords, TFWCoordinates, read_tfw_file
 import shutil
 from pathlib import Path
+from typing import Optional
+
+
+@dataclass
+class PostprocessingResult:
+    postpocessing_visualization: np.ndarray
+    shapefile_zip_path: Optional[str]
 
 
 def draw_mask(img, mask, color=(0, 0, 255)):
@@ -168,7 +177,7 @@ def draw_polyline(img, polyline):
         
     return img
 
-    
+
 def polyline2shapefile(polyline: np.ndarray, path: str, tfw: TFWCoordinates, crs: str = "EPSG:32637"):
     schema = {
         "geometry": "LineString",
@@ -197,14 +206,27 @@ def zip_and_remove(folder):
     return folder + ".zip"
 
   
-def get_postprocessing_visualization(img, mask):
+def do_postprocessing(img, mask, tfw_path: Optional[str], shapefile_folder_path: str) -> PostprocessingResult:
     if isinstance(img, str):
         img = cv2.imread(img)
 
     _, _, G = img_to_ske_G(mask)
     curves = nx2polyline(G)
     postpocessing_visualization = draw_polyline(img, curves)
-    return postpocessing_visualization
+
+    if tfw_path is not None:
+        tfw = read_tfw_file(tfw_path)
+        polyline2shapefile(curves, shapefile_folder_path, tfw)
+        shapefile_zip_path = zip_and_remove(shapefile_folder_path)
+    else:
+        shapefile_zip_path = None
+
+    result = PostprocessingResult(
+        postpocessing_visualization=postpocessing_visualization,
+        shapefile_zip_path=shapefile_zip_path,
+    )
+
+    return result
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ import numpy as np
 from mmseg.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from mmseg.core.evaluation import get_palette
 
-from postprocessing.process import get_postprocessing_visualization
+from postprocessing.process import do_postprocessing
 
 
 FP_16_MODE = None
@@ -96,27 +96,35 @@ def create_folders():
     masks_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "masks")
     visualizations_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "visualization")
     postprocessing_visualization_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "postprocessing_visualization")
-    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER]:
+    shapefiles_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "shapefiles")
+    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER, shapefiles_folder]:
         os.makedirs(folder, exist_ok=True)
 
 
 def predict(image, model, tfw_path: Optional[str]) -> PredictionInformation:
+    image_name = Path(image).stem
+
     mask = inference_segmentor(model, image)[0]
     visualization = draw_mask(image, mask)
-    postprocessing_visualization = get_postprocessing_visualization(image, mask)
-
-    image_name = Path(image).stem
+    postprocessing_result = do_postprocessing(
+        image, mask,
+        tfw_path=tfw_path, shapefile_folder_path=os.path.join(
+            PREDICTIONS_OUTPUT_FOLDER, "shapefiles", image_name)
+    )
 
     prediction_info = PredictionInformation(
         visualization_path=os.path.join("visualization", f"{image_name}.jpg"),
         mask_path=os.path.join("masks", f"{image_name}.npy"),
         postprocessing_visualization_path=os.path.join("postprocessing_visualization", f"{image_name}.jpg"),
-        shapefile_path=None if not tfw_path else "debug",
+        shapefile_path=os.path.relpath(postprocessing_result.shapefile_zip_path, PREDICTIONS_OUTPUT_FOLDER) if postprocessing_result.shapefile_zip_path else None,
     )
 
     np.save(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.mask_path), mask)
     cv2.imwrite(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.visualization_path), visualization)
-    cv2.imwrite(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.postprocessing_visualization_path), postprocessing_visualization)
+    cv2.imwrite(
+        os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.postprocessing_visualization_path),
+        postprocessing_result.postpocessing_visualization,
+    )
 
     return prediction_info
 
