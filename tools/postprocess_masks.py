@@ -11,7 +11,7 @@ def main(args):
     imgs_folder = Path(args.imgs_folder)
     output_folder = Path(args.output_folder)
     
-    output_folder.mkdir()
+    output_folder.mkdir(exist_ok=True, parents=True)
     
     for mask_path in tqdm(list(Path(args.masks_folder).glob("*.npy"))):
         mask = np.load(mask_path)
