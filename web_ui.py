@@ -7,6 +7,7 @@ import os
 from flask import request
 from flask import Flask
 from flask import render_template
+from flask import send_file
 
 from argparse import ArgumentParser
 import glob
@@ -26,6 +27,8 @@ from mmseg.core.evaluation import get_palette
 
 FP_16_MODE = None
 
+PREDICTIONS_OUTPUT_FOLDER = "static/predictions"
+
 
 @dataclass
 class PredictionInformation:
@@ -35,8 +38,6 @@ class PredictionInformation:
 
 def get_args():
     parser = ArgumentParser()
-    # parser.add_argument('input_folder', help='Folder with big images')
-    # parser.add_argument('output_folder', help="Folder to save masks & visualization")
     parser.add_argument('config', help='Config file')
     parser.add_argument('checkpoint', help='Checkpoint file')
     parser.add_argument('--fp16', type=bool, default=False)
@@ -84,27 +85,27 @@ def init_segmentation_model():
     return model
 
 
-def create_folders(output_folder="static/predictions"):
-    masks_folder = os.path.join(output_folder, "masks")
-    visualizations_folder = os.path.join(output_folder, "visualization")
+def create_folders():
+    masks_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "masks")
+    visualizations_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "visualization")
 
     for folder in [masks_folder, visualizations_folder]:
         os.makedirs(folder, exist_ok=True)
 
 
-def predict(image, model, output_folder="static/predictions") -> PredictionInformation:
+def predict(image, model) -> PredictionInformation:
     mask = inference_segmentor(model, image)[0]
     visualization = draw_mask(image, mask)
 
     image_name = Path(image).stem
 
     prediction_info = PredictionInformation(
-        visualization_path=os.path.join(output_folder, "visualization", f"{image_name}.jpg"),
-        mask_path=os.path.join(output_folder, "masks", f"{image_name}.npy"),
+        visualization_path=os.path.join("visualization", f"{image_name}.jpg"),
+        mask_path=os.path.join("masks", f"{image_name}.npy"),
     )
 
-    np.save(prediction_info.mask_path, mask)
-    cv2.imwrite(prediction_info.visualization_path, visualization)
+    np.save(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.mask_path), mask)
+    cv2.imwrite(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.visualization_path), visualization)
     
     return prediction_info
 
@@ -113,6 +114,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = '/app/static'
 DEVICE = "cuda"
 MODEL = None
+
 
 @app.route("/", methods = ["GET","POST"])
 def upload_predict():
@@ -129,11 +131,18 @@ def upload_predict():
             prediction_info = predict(image_location, MODEL)
             return render_template(
                 "index.html",
-                image_loc=prediction_info.visualization_path,
+                image_loc=os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.visualization_path),
+                visualization_path=prediction_info.visualization_path,
+                mask_path=prediction_info.mask_path,
                 fp16_mode=fp16_mode
             )
 
     return render_template("index.html",prediction = 0, image_loc=None, fp16_mode=fp16_mode)
+
+
+@app.route('/download/<path:filename>', methods=['GET', 'POST'])
+def download(filename):
+    return send_file(os.path.join(PREDICTIONS_OUTPUT_FOLDER, filename))
 
 
 def run_web_ui():
