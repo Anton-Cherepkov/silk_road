@@ -22,7 +22,6 @@ def main(args):
         shapefile_dst_folder = str(output_folder / mask_path.stem)
         
         polyline2shapefile(polyline, shapefile_dst_folder, tfw)
-        zip_and_remove(shapefile_dst_folder)
         
         
 if __name__ == "__main__":
