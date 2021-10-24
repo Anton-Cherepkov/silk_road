@@ -1,2 +1,4 @@
-data/data/
-work_dirs/
+data/data/**
+work_dirs/**
+artifacts/**
+static/predictions/**

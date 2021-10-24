@@ -30,6 +30,7 @@ from mmseg.core.evaluation import get_palette
 FP_16_MODE = None
 
 PREDICTIONS_OUTPUT_FOLDER = "static/predictions"
+UPLOAD_FOLDER = 'static/uploads'
 
 
 @dataclass
@@ -91,8 +92,7 @@ def init_segmentation_model():
 def create_folders():
     masks_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "masks")
     visualizations_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "visualization")
-
-    for folder in [masks_folder, visualizations_folder]:
+    for folder in [masks_folder, visualizations_folder, UPLOAD_FOLDER]:
         os.makedirs(folder, exist_ok=True)
 
 
@@ -115,7 +115,7 @@ def predict(image, model, tfw_path: Optional[str]) -> PredictionInformation:
 
 
 app = Flask(__name__)
-UPLOAD_FOLDER = '/app/static'
+
 DEVICE = "cuda"
 MODEL = None
 

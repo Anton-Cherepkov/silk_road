@@ -131,3 +131,5 @@ dmypy.json
 
 data/data/
 work_dirs/
+static/predictions/
+static/uploads/
