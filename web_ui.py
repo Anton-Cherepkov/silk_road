@@ -26,6 +26,8 @@ import numpy as np
 from mmseg.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from mmseg.core.evaluation import get_palette
 
+from postprocessing.process import get_postprocessing_visualization
+
 
 FP_16_MODE = None
 
@@ -38,6 +40,7 @@ class PredictionInformation:
     visualization_path: str
     mask_path: str
     shapefile_path: Optional[str]
+    postprocessing_visualization_path: Optional[str]
 
 
 def get_args():
@@ -92,25 +95,29 @@ def init_segmentation_model():
 def create_folders():
     masks_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "masks")
     visualizations_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "visualization")
-    for folder in [masks_folder, visualizations_folder, UPLOAD_FOLDER]:
+    postprocessing_visualization_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "postprocessing_visualization")
+    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER]:
         os.makedirs(folder, exist_ok=True)
 
 
 def predict(image, model, tfw_path: Optional[str]) -> PredictionInformation:
     mask = inference_segmentor(model, image)[0]
     visualization = draw_mask(image, mask)
+    postprocessing_visualization = get_postprocessing_visualization(image, mask)
 
     image_name = Path(image).stem
 
     prediction_info = PredictionInformation(
         visualization_path=os.path.join("visualization", f"{image_name}.jpg"),
         mask_path=os.path.join("masks", f"{image_name}.npy"),
+        postprocessing_visualization_path=os.path.join("postprocessing_visualization", f"{image_name}.jpg"),
         shapefile_path=None if not tfw_path else "debug",
     )
 
     np.save(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.mask_path), mask)
     cv2.imwrite(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.visualization_path), visualization)
-    
+    cv2.imwrite(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.postprocessing_visualization_path), postprocessing_visualization)
+
     return prediction_info
 
 
@@ -152,6 +159,7 @@ def upload_predict():
                 "index.html",
                 image_loc=os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.visualization_path),
                 visualization_path=prediction_info.visualization_path,
+                postprocessing_visualization_path=prediction_info.postprocessing_visualization_path,
                 mask_path=prediction_info.mask_path,
                 shapefile_path=prediction_info.shapefile_path,
                 fp16_mode=fp16_mode

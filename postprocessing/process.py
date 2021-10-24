@@ -155,6 +155,7 @@ def nx2polyline(G):
     
     return curves
 
+
 def draw_polyline(img, polyline):
     img = img.copy()
     for curve in polyline:
@@ -163,4 +164,12 @@ def draw_polyline(img, polyline):
         
     return img
 
-        
+
+def get_postprocessing_visualization(img, mask):
+    if isinstance(img, str):
+        img = cv2.imread(img)
+
+    _, _, G = img_to_ske_G(mask)
+    curves = nx2polyline(G)
+    postpocessing_visualization = draw_polyline(img, curves)
+    return postpocessing_visualization
