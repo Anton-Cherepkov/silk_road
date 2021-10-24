@@ -15,20 +15,29 @@
 
 <body class="text-center">
   <form class="form-upload" method=post enctype=multipart/form-data>
-  <h1 class="h3 mb-3 font-weight-normal">Загрузить tif</h1>
-  <input type="file" id="image" name ="image" class="form-control" required autofocus>
-  <br>
-  <button class="btn btn-lg btn-primary btn-block" type="submit">Обработать</button>
-  <br><br>
-  {% if image_loc %}
-    <h4>Результаты:</h4>
-    <a target="_blank" rel="noopener noreferrer" href="/download/{{visualization_path}}">Визуализация дорожек</a>
+    <h1 class="h3 mb-3 font-weight-normal">Поиск пешеходных дорожек</h1>
+    Изображение
+    <input type="file" id="image" name ="image" accept=".png, .tif, .jpg, .jpeg" class="form-control" required autofocus>
     <br>
-    <a target="_blank" rel="noopener noreferrer" href="/download/{{mask_path}}">Маска вероятностей дорожек (numpy-массив)</a>
+    .tfw файл (опционально)<input type="file" id="tfw" name ="tfw" accept=".tfw" class="form-control" autofocus>
     <br>
-    <!-- <img class="mb-4" src="{{image_loc}}" alt="" width="512" height="512"> -->
-    <!-- <h3 class="h3 mb-3 font-weight-normal">Prediction: {{prediction}}</h3> -->
-  {%endif%}  
-</form>
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Обработать</button>
+    <br><br>
+    {% if image_loc %}
+      <h4>Результаты:</h4>
+      <a target="_blank" rel="noopener noreferrer" href="/download/{{visualization_path}}">Визуализация дорожек</a>
+      <br>
+      <a target="_blank" rel="noopener noreferrer" href="/download/{{mask_path}}">Маска вероятностей дорожек (numpy-массив)</a>
+      <br>
+      {% if shapefile_path %}
+        <a target="_blank" rel="noopener noreferrer" href="/download/{{shapefile_path}}">Shapefile</a>
+      {% else %}
+        Shapefile не доступен, так как .tfw файл не был загружен
+      {% endif %}
+
+      <!-- <img class="mb-4" src="{{image_loc}}" alt="" width="512" height="512"> -->
+      <!-- <h3 class="h3 mb-3 font-weight-normal">Prediction: {{prediction}}</h3> -->
+    {%endif%}  
+  </form>
 </body>
 </html>

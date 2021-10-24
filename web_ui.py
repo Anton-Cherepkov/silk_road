@@ -9,6 +9,8 @@ from flask import Flask
 from flask import render_template
 from flask import send_file
 
+from typing import Optional
+
 from argparse import ArgumentParser
 import glob
 import os
@@ -34,6 +36,7 @@ PREDICTIONS_OUTPUT_FOLDER = "static/predictions"
 class PredictionInformation:
     visualization_path: str
     mask_path: str
+    shapefile_path: Optional[str]
 
 
 def get_args():
@@ -93,7 +96,7 @@ def create_folders():
         os.makedirs(folder, exist_ok=True)
 
 
-def predict(image, model) -> PredictionInformation:
+def predict(image, model, tfw_path: Optional[str]) -> PredictionInformation:
     mask = inference_segmentor(model, image)[0]
     visualization = draw_mask(image, mask)
 
@@ -102,6 +105,7 @@ def predict(image, model) -> PredictionInformation:
     prediction_info = PredictionInformation(
         visualization_path=os.path.join("visualization", f"{image_name}.jpg"),
         mask_path=os.path.join("masks", f"{image_name}.npy"),
+        shapefile_path=None if not tfw_path else "debug",
     )
 
     np.save(os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.mask_path), mask)
@@ -120,20 +124,36 @@ MODEL = None
 def upload_predict():
     if request.method == "POST":
         image_file = request.files['image']
+        tfw_file = request.files['tfw']
+
         if image_file:
             image_location = os.path.join( 
                 UPLOAD_FOLDER,
                 image_file.filename
             )
             image_file.save(image_location)
-            render_template("index.html", image_loc=image_location) # show upload
 
-            prediction_info = predict(image_location, MODEL)
+            if tfw_file:
+                tfw_location = os.path.join(
+                    UPLOAD_FOLDER,
+                    tfw_file.filename
+                )
+                tfw_file.save(tfw_location)
+            else:
+                tfw_location = None
+
+            prediction_info = predict(
+                image=image_location,
+                tfw_path=tfw_location,
+                model=MODEL
+            )
+
             return render_template(
                 "index.html",
                 image_loc=os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.visualization_path),
                 visualization_path=prediction_info.visualization_path,
                 mask_path=prediction_info.mask_path,
+                shapefile_path=prediction_info.shapefile_path,
                 fp16_mode=fp16_mode
             )
 
