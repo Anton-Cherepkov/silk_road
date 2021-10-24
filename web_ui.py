@@ -13,6 +13,7 @@ import glob
 import os
 from pathlib import Path
 from tqdm.auto import tqdm
+from dataclasses import dataclass
 # import sns
 import mmcv
 from mmcv.runner import wrap_fp16_model
@@ -24,6 +25,12 @@ from mmseg.core.evaluation import get_palette
 
 
 FP_16_MODE = None
+
+
+@dataclass
+class PredictionInformation:
+    visualization_path: str
+    mask_path: str
 
 
 def get_args():
@@ -60,7 +67,7 @@ def get_tif_images_in_folder(folder: str):
     return glob.glob(os.path.join(folder, "*.tif"))
 
 
-def init():
+def init_segmentation_model():
     # build the model from a config file and a checkpoint file
     args = get_args()
     cfg = mmcv.Config.fromfile(args.config)
@@ -77,20 +84,29 @@ def init():
     return model
 
 
-def predict(image,model):
-    args = get_args()
+def create_folders(output_folder="static/predictions"):
+    masks_folder = os.path.join(output_folder, "masks")
+    visualizations_folder = os.path.join(output_folder, "visualization")
+
+    for folder in [masks_folder, visualizations_folder]:
+        os.makedirs(folder, exist_ok=True)
+
+
+def predict(image, model, output_folder="static/predictions") -> PredictionInformation:
     mask = inference_segmentor(model, image)[0]
-    # heatmap = sns.heatmap(mask, annot=True, fmt="d")
-    # heatmap.savefig('static/heatmap.png')
-    # cv2.imwrite('static/mask.png',mask)
+    visualization = draw_mask(image, mask)
+
     image_name = Path(image).stem
-    masks_folder = 'static'
-    mask_path = os.path.join(
-            masks_folder, f"{image_name}.npy"
-        )    
-    np.save(mask_path, mask)
-    img_with_mask = draw_mask(image, mask)
-    return img_with_mask
+
+    prediction_info = PredictionInformation(
+        visualization_path=os.path.join(output_folder, "visualization", f"{image_name}.jpg"),
+        mask_path=os.path.join(output_folder, "masks", f"{image_name}.npy"),
+    )
+
+    np.save(prediction_info.mask_path, mask)
+    cv2.imwrite(prediction_info.visualization_path, visualization)
+    
+    return prediction_info
 
 
 app = Flask(__name__)
@@ -109,13 +125,24 @@ def upload_predict():
             )
             image_file.save(image_location)
             render_template("index.html", image_loc=image_location) # show upload
-            pred = predict(image_location, MODEL)
-            cv2.imwrite('static/pred.png',pred)
-            return render_template("index.html", image_loc='static/pred.png', fp16_mode=fp16_mode)
+
+            prediction_info = predict(image_location, MODEL)
+            return render_template(
+                "index.html",
+                image_loc=prediction_info.visualization_path,
+                fp16_mode=fp16_mode
+            )
 
     return render_template("index.html",prediction = 0, image_loc=None, fp16_mode=fp16_mode)
 
 
-if __name__=="__main__":
-    MODEL = init()
+def run_web_ui():
+    global MODEL
+
+    create_folders()
+    MODEL = init_segmentation_model()
     app.run(port = 8011, debug = True, host="0.0.0.0")
+
+
+if __name__=="__main__":
+    run_web_ui()
