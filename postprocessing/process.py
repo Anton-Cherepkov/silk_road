@@ -6,6 +6,8 @@ import networkx as nx
 import fiona
 import sknw
 from tfw import pixel_coord_to_world_coords, TFWCoordinates, read_tfw_file
+import shutil
+from pathlib import Path
 
 
 def draw_mask(img, mask, color=(0, 0, 255)):
@@ -183,7 +185,15 @@ def polyline2shapefile(polyline: np.ndarray, path: str, tfw: TFWCoordinates, crs
                     "coordinates": points
                 }
             })
-
+            
+    
+def zip_and_remove(folder):
+    if folder.endswith("/"):
+        folder = folder[:-1]
+    shutil.make_archive(folder, 'zip', folder)
+    shutil.rmtree(folder)
+    
+    return folder + ".zip"
 
 if __name__ == "__main__":
     img = cv2.imread("3560-825.tif")
@@ -198,3 +208,7 @@ if __name__ == "__main__":
     
     tfw = read_tfw_file("3560-825.tfw")
     polyline2shapefile(roads_polyline, "3560-825", tfw)
+    
+    input()
+    
+    zip_and_remove("3560-825")
