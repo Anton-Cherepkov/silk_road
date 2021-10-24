@@ -1,7 +1,8 @@
 _base_ = [
-    '../_base_/models/ocrnet_hr18.py',
-    '../_base_/datasets/hackathon.py', '../_base_/default_runtime.py',
-    '../_base_/schedules/schedule_20k.py'
+    '/app/configs/_base_/models/ocrnet_hr18.py',
+    '/app/configs/_base_/datasets/hackathon.py', 
+    '/app/configs/_base_/default_runtime.py',
+    '/app/configs/_base_/schedules/schedule_20k.py'
 ]
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 num_classes = 2
