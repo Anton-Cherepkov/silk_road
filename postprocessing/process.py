@@ -4,8 +4,8 @@ from skimage.morphology import erosion, dilation, opening, closing, disk
 import numpy as np
 import networkx as nx
 import fiona
-import sknw
-from tfw import pixel_coord_to_world_coords, TFWCoordinates, read_tfw_file
+import postprocessing.sknw as sknw
+from postprocessing.tfw import pixel_coord_to_world_coords, TFWCoordinates, read_tfw_file
 import shutil
 from pathlib import Path
 
