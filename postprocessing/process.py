@@ -206,7 +206,8 @@ def get_postprocessing_visualization(img, mask):
     postpocessing_visualization = draw_polyline(img, curves)
     return postpocessing_visualization
 
-  if __name__ == "__main__":
+
+if __name__ == "__main__":
     img = cv2.imread("3560-825.tif")
     mask = np.load("3560-825.npy")
     mask_postprocessed, ske, G = img_to_ske_G(mask)
