@@ -3,7 +3,9 @@ from skimage.morphology import skeletonize, remove_small_objects, remove_small_h
 from skimage.morphology import erosion, dilation, opening, closing, disk
 import numpy as np
 import networkx as nx
-import postprocessing.sknw as sknw
+import fiona
+import sknw
+from tfw import pixel_coord_to_world_coords, TFWCoordinates, read_tfw_file
 
 
 def draw_mask(img, mask, color=(0, 0, 255)):
@@ -164,3 +166,35 @@ def draw_polyline(img, polyline):
     return img
 
         
+def polyline2shapefile(polyline: np.ndarray, path: str, tfw: TFWCoordinates, crs: str = "EPSG:32637"):
+    schema = {
+        "geometry": "LineString",
+    }
+    
+    with fiona.open(path, mode='w', 
+                    driver='ESRI Shapefile',
+                    schema=schema, 
+                    crs=crs) as f:
+        for line in polyline:
+            points = [pixel_coord_to_world_coords(tfw, x, y) for x, y in line]
+            f.write({
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": points
+                }
+            })
+
+
+if __name__ == "__main__":
+    img = cv2.imread("3560-825.tif")
+    mask = np.load("3560-825.npy")
+    mask_postprocessed, ske, G = img_to_ske_G(mask)
+    
+    roads_polyline = nx2polyline(G)
+    
+    cv2.imwrite("mask_postprocessed.png", draw_mask(img, mask_postprocessed))
+    cv2.imwrite("ske.png", draw_mask(img, ske))
+    cv2.imwrite("graph.png", draw_polyline(img, roads_polyline))
+    
+    tfw = read_tfw_file("3560-825.tfw")
+    polyline2shapefile(roads_polyline, "3560-825", tfw)
