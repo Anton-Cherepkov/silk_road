@@ -40,23 +40,6 @@
         <br><br>
       {% endfor %}
     {% endif %}
-    <!-- {% if image_loc %}
-      <h4>Результаты:</h4>
-      <a target="_blank" rel="noopener noreferrer" href="/download/{{visualization_path}}">Визуализация дорожек</a>
-      <br>
-      <a target="_blank" rel="noopener noreferrer" href="/download/{{postprocessing_visualization_path}}">Визуализация дорожек (после постпроцессинга)</a>
-      <br>
-      {% if shapefile_path %}
-        <a target="_blank" rel="noopener noreferrer" href="/download/{{shapefile_path}}">Shapefile</a>
-      {% else %}
-        Shapefile не доступен, так как .tfw файл не был загружен
-      {% endif %}
-      <br>
-      <a target="_blank" rel="noopener noreferrer" href="/download/{{mask_path}}">Маска вероятностей дорожек (numpy-массив)</a>
-
-      <!-- <img class="mb-4" src="{{image_loc}}" alt="" width="512" height="512"> -->
-      <!-- <h3 class="h3 mb-3 font-weight-normal">Prediction: {{prediction}}</h3> -->
-    {%endif%}   -->
   </form>
 </body>
 </html>
