@@ -176,6 +176,8 @@ def predict_multiple(images: List[str], tfw_paths: List[Optional[str]], model) -
             )
             all_roads_geojson_id = Path(all_road_geojson).stem
         except:
+            import traceback
+            traceback.print_exc()
             all_roads_geojson_id = None
     else:
         all_roads_shapefile = None
