@@ -18,3 +18,4 @@ COPY . /silk_road_app
 WORKDIR /silk_road_app
 
 CMD ./run_web_ui.sh
+EXPOSE 8011

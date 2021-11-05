@@ -10,13 +10,14 @@ import postprocessing.sknw as sknw
 from postprocessing.tfw import pixel_coord_to_world_coords, TFWCoordinates, read_tfw_file
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 
 @dataclass
 class PostprocessingResult:
     postpocessing_visualization: np.ndarray
     shapefile_zip_path: Optional[str]
+    roads_curves: List[np.ndarray]
 
 
 def draw_mask(img, mask, color=(0, 0, 255)):
@@ -178,7 +179,7 @@ def draw_polyline(img, polyline):
     return img
 
 
-def polyline2shapefile(polyline: np.ndarray, path: str, tfw: TFWCoordinates, crs: str = "EPSG:32637"):
+def polylines2shapefile(polylines: List[List[np.ndarray]], tfws: List[TFWCoordinates], path: str, crs: str = "EPSG:32637"):
     schema = {
         "geometry": "LineString",
     }
@@ -187,14 +188,19 @@ def polyline2shapefile(polyline: np.ndarray, path: str, tfw: TFWCoordinates, crs
                     driver='ESRI Shapefile',
                     schema=schema, 
                     crs=crs) as f:
-        for line in polyline:
-            points = [pixel_coord_to_world_coords(tfw, x, y) for x, y in line]
-            f.write({
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": points
-                }
-            })
+        for polyline, tfw in zip(polylines, tfws):
+            for line in polyline:
+                points = [pixel_coord_to_world_coords(tfw, x, y) for x, y in line]
+                f.write({
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": points
+                    }
+                })
+
+
+def polyline2shapefile(polyline: np.ndarray, path: str, tfw: TFWCoordinates, crs: str = "EPSG:32637"):
+    polylines2shapefile([polyline], [tfw], path, crs)
             
     
 def zip_and_remove(folder):
@@ -224,6 +230,7 @@ def do_postprocessing(img, mask, tfw_path: Optional[str], shapefile_folder_path:
     result = PostprocessingResult(
         postpocessing_visualization=postpocessing_visualization,
         shapefile_zip_path=shapefile_zip_path,
+        roads_curves=curves
     )
 
     return result

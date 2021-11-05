@@ -9,27 +9,34 @@ from flask import Flask
 from flask import render_template
 from flask import send_file
 
-from typing import Optional
+from typing import Optional, List, Tuple
 
 from argparse import ArgumentParser
+
+from numpy.lib.npyio import savetxt
+import torch
 import glob
 import os
 from pathlib import Path
 from tqdm.auto import tqdm
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from itertools import chain
 # import sns
 import mmcv
 from mmcv.runner import wrap_fp16_model
 import cv2
 import numpy as np
+from datetime import datetime
 
 from mmseg.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from mmseg.core.evaluation import get_palette
 
-from postprocessing.process import do_postprocessing
+from postprocessing.process import do_postprocessing, PostprocessingResult, polylines2shapefile, read_tfw_file, zip_and_remove
+from postprocessing.convert import shapefile_to_geojson
 
 
 FP_16_MODE = None
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 PREDICTIONS_OUTPUT_FOLDER = "static/predictions"
 UPLOAD_FOLDER = 'static/uploads'
@@ -48,8 +55,6 @@ def get_args():
     parser.add_argument('config', help='Config file')
     parser.add_argument('checkpoint', help='Checkpoint file')
     parser.add_argument('--fp16', type=bool, default=False)
-    parser.add_argument(
-        '--device', default='cuda:0', help='Device used for inference')
     args = parser.parse_args()
     return args
 
@@ -80,9 +85,9 @@ def init_segmentation_model():
     args = get_args()
     cfg = mmcv.Config.fromfile(args.config)
     cfg.model.test_cfg['mode'] = 'slide'
-    cfg.model.test_cfg['stride'] = (200, 200)
+    cfg.model.test_cfg['stride'] = (512, 512)
     cfg.model.test_cfg['crop_size'] = (512, 512)
-    model = init_segmentor(cfg, args.checkpoint, device=args.device)
+    model = init_segmentor(cfg, args.checkpoint, device=DEVICE)
     global fp16_mode
     if args.fp16:
         wrap_fp16_model(model)
@@ -97,11 +102,13 @@ def create_folders():
     visualizations_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "visualization")
     postprocessing_visualization_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "postprocessing_visualization")
     shapefiles_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "shapefiles")
-    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER, shapefiles_folder]:
+    common_shapefiles_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "common_shapefiles")
+    geojsons_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "geojsons_epsg4326")
+    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER, shapefiles_folder, common_shapefiles_folder, geojsons_folder]:
         os.makedirs(folder, exist_ok=True)
 
 
-def predict(image, model, tfw_path: Optional[str]) -> PredictionInformation:
+def predict(image, model, tfw_path: Optional[str]) -> Tuple[PredictionInformation, PostprocessingResult]:
     image_name = Path(image).stem
 
     mask = inference_segmentor(model, image)[0]
@@ -126,60 +133,169 @@ def predict(image, model, tfw_path: Optional[str]) -> PredictionInformation:
         postprocessing_result.postpocessing_visualization,
     )
 
-    return prediction_info
+    return prediction_info, postprocessing_result
+
+
+def predict_multiple(images: List[str], tfw_paths: List[Optional[str]], model) -> Tuple[List[PredictionInformation], Optional[str], Optional[str]]:
+    results = []
+
+    for image, tfw_path in zip(images, tfw_paths):
+        results.append(predict(image, model, tfw_path))
+
+    prediction_infos, postprocessing_results = zip(*results)
+
+    if any(tfw_paths):
+        polylines, tfws = zip(*[
+            (postprocessing_result.roads_curves, read_tfw_file(tfw_path))
+            for postprocessing_result, tfw_path in zip(postprocessing_results, tfw_paths)
+            if tfw_path is not None
+        ])
+        all_roads_shapefile = os.path.join(
+            PREDICTIONS_OUTPUT_FOLDER,
+            "common_shapefiles",
+            datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        )
+        polylines2shapefile(polylines, tfws, all_roads_shapefile)
+        all_roads_shapefile = zip_and_remove(all_roads_shapefile)
+        
+        try:
+            all_road_geojson = os.path.join(
+                PREDICTIONS_OUTPUT_FOLDER,
+                "geojsons_epsg4326",
+                Path(all_roads_shapefile).stem + ".geojson",   
+            )
+            shapefile_to_geojson(
+                input=all_roads_shapefile,
+                output=all_road_geojson,
+                epsg=4326,
+            )
+
+            all_roads_shapefile = os.path.relpath(
+                all_roads_shapefile,
+                PREDICTIONS_OUTPUT_FOLDER
+            )
+            all_roads_geojson_id = Path(all_road_geojson).stem
+        except:
+            all_roads_geojson_id = None
+    else:
+        all_roads_shapefile = None
+        all_roads_geojson_id = None
+
+    return prediction_infos, all_roads_shapefile, all_roads_geojson_id
+
+
+def make_mapping_filename_to_file(files):
+    mapping = dict()
+    for file in files:
+        mapping[Path(file.filename).stem] = file
+    return mapping
+
+
+def save_corresponding_images_and_tfws(images, tfws):
+    names_to_images = make_mapping_filename_to_file(images)
+    names_to_tfws = make_mapping_filename_to_file(tfws)
+
+    saved_images = []
+    saved_tfws = []
+
+    for name, image in names_to_images.items():
+        image_loc = os.path.join(UPLOAD_FOLDER, image.filename)
+        image.save(image_loc)
+
+        tfw = names_to_tfws.get(name)
+        if tfw:
+            tfw_loc = os.path.join(UPLOAD_FOLDER, tfw.filename)
+            tfw.save(tfw_loc)
+        else:
+            tfw_loc = None
+        
+        saved_images.append(image_loc)
+        saved_tfws.append(tfw_loc)
+
+    names = [
+        Path(path).stem
+        for path in saved_images
+    ]
+
+    return names, saved_images, saved_tfws
+
+
+def generate_warning_missing_tfws(names, saved_tfws):
+    names_with_missing_tfws = list()
+
+    for tfw, name in zip(saved_tfws, names):
+        if tfw is None:
+            names_with_missing_tfws.append(name)
+
+    msg = "Для этих изображений не были загружены tfw-файлы, "
+    msg += "поэтому Shapefile для них сгенерированы не будут: "
+    msg += ", ".join(names_with_missing_tfws)
+    msg += "."
+
+    if len(names_with_missing_tfws) > 0:
+        return msg
 
 
 app = Flask(__name__)
 
-DEVICE = "cuda"
 MODEL = None
 
 
 @app.route("/", methods = ["GET","POST"])
 def upload_predict():
     if request.method == "POST":
-        image_file = request.files['image']
-        tfw_file = request.files['tfw']
+        images = request.files.getlist("image[]")
+        tfws = request.files.getlist("tfw[]")
 
-        if image_file:
-            image_location = os.path.join( 
-                UPLOAD_FOLDER,
-                image_file.filename
-            )
-            image_file.save(image_location)
+        names, saved_images, saved_tfws = save_corresponding_images_and_tfws(
+            images=images,
+            tfws=tfws,
+        )
 
-            if tfw_file:
-                tfw_location = os.path.join(
-                    UPLOAD_FOLDER,
-                    tfw_file.filename
-                )
-                tfw_file.save(tfw_location)
-            else:
-                tfw_location = None
+        prediction_infos, all_roads_shapefile, all_roads_geojson_id = predict_multiple(
+            images=saved_images,
+            tfw_paths=saved_tfws,
+            model=MODEL
+        )
 
-            prediction_info = predict(
-                image=image_location,
-                tfw_path=tfw_location,
-                model=MODEL
-            )
+        prediction_infos = list(map(asdict, prediction_infos))
+        for name, prediction_info in zip(names, prediction_infos):
+            prediction_info["name"] = name
+        
+        warning_msgs = []
+        msg_missing_tfws = generate_warning_missing_tfws(names, saved_tfws)
+        if msg_missing_tfws is not None:
+            warning_msgs.append(msg_missing_tfws)
 
-            return render_template(
-                "index.html",
-                image_loc=os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.visualization_path),
-                visualization_path=prediction_info.visualization_path,
-                postprocessing_visualization_path=prediction_info.postprocessing_visualization_path,
-                mask_path=prediction_info.mask_path,
-                shapefile_path=prediction_info.shapefile_path,
-                fp16_mode=fp16_mode
-            )
+        return render_template(
+            "index.html",
+            all_roads_shapefile=all_roads_shapefile,
+            all_roads_geojson_id=all_roads_geojson_id,
+            predictions=prediction_infos,
+            fp16_mode=fp16_mode,
+            device=DEVICE,
+            warning_msgs=warning_msgs,
+        )
 
-    return render_template("index.html",prediction = 0, image_loc=None, fp16_mode=fp16_mode)
+    return render_template(
+        "index.html",
+        predictions=[],
+        fp16_mode=fp16_mode,
+        device=DEVICE,
+    )
 
 
 @app.route('/download/<path:filename>', methods=['GET', 'POST'])
 def download(filename):
     return send_file(os.path.join(PREDICTIONS_OUTPUT_FOLDER, filename))
 
+
+@app.route('/map/<id>')
+def show_map(id: str):
+    return render_template(
+        "map.html",
+        id=os.path.join("geojsons_epsg4326", id),
+    )
 
 def run_web_ui():
     global MODEL

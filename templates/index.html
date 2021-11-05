@@ -11,35 +11,55 @@
 
     <!-- Custom styles for this template -->
     <link href="/static/css/form_upload.css" rel="stylesheet">
+    <link href="/static/css/alert.css" rel="stylesheet">
 </head>
 
 <body class="text-center">
   <form class="form-upload" method=post enctype=multipart/form-data>
+    {% if device == "cpu" %}
+      <div class="alert">
+        Не удалось подключиться к GPU. Возможно, не установлены необходимые драйвера CUDA.<br><br>Вычисления будут производиться на CPU, что приведет к замедлению работы.
+      </div>
+    {% endif %}
     <h1 class="h3 mb-3 font-weight-normal">Поиск пешеходных дорожек</h1>
-    Изображение
-    <input type="file" id="image" name ="image" accept=".png, .tif, .jpg, .jpeg" class="form-control" required autofocus>
+    Изображения
+    <input type="file" id="image" name ="image[]" accept=".png, .tif, .jpg, .jpeg" class="form-control" required autofocus multiple>
     <br>
-    .tfw файл (опционально)<input type="file" id="tfw" name ="tfw" accept=".tfw" class="form-control" autofocus>
+    .tfw файлы (опционально)<input type="file" id="tfw" name ="tfw[]" accept=".tfw" class="form-control" autofocus multiple>
     <br>
     <button class="btn btn-lg btn-primary btn-block" type="submit">Обработать</button>
     <br><br>
-    {% if image_loc %}
+    {% if predictions %}
       <h4>Результаты:</h4>
-      <a target="_blank" rel="noopener noreferrer" href="/download/{{visualization_path}}">Визуализация дорожек</a>
-      <br>
-      <a target="_blank" rel="noopener noreferrer" href="/download/{{postprocessing_visualization_path}}">Визуализация дорожек (после постпроцессинга)</a>
-      <br>
-      {% if shapefile_path %}
-        <a target="_blank" rel="noopener noreferrer" href="/download/{{shapefile_path}}">Shapefile</a>
-      {% else %}
-        Shapefile не доступен, так как .tfw файл не был загружен
+      {% if warning_msgs %}
+        {% for msg in warning_msgs %}
+          <div class="warning">{{msg}}</div><br>
+        {% endfor %}
       {% endif %}
-      <br>
-      <a target="_blank" rel="noopener noreferrer" href="/download/{{mask_path}}">Маска вероятностей дорожек (numpy-массив)</a>
-
-      <!-- <img class="mb-4" src="{{image_loc}}" alt="" width="512" height="512"> -->
-      <!-- <h3 class="h3 mb-3 font-weight-normal">Prediction: {{prediction}}</h3> -->
-    {%endif%}  
+      {% if all_roads_shapefile %}
+        <a target="_blank" rel="noopener noreferrer" href="/download/{{all_roads_shapefile}}">Общий shapefile для всех изображений</a>
+        {% if all_roads_geojson_id %}
+          <br>
+          <a target="_blank" rel="noopener noreferrer" href="/map/{{all_roads_geojson_id}}">Посмотреть на карте</a>
+        {% endif %}
+        <br><br>
+      {% endif %}
+      {% for prediction in predictions %}
+        <h5>Изображение {{ prediction['name'] }}</h5>
+        <a target="_blank" rel="noopener noreferrer" href="/download/{{prediction['visualization_path']}}">Визуализация дорожек</a>
+        <br>
+        <a target="_blank" rel="noopener noreferrer" href="/download/{{prediction['postprocessing_visualization_path']}}">Визуализация дорожек (после постпроцессинга)</a>
+        <br>
+        {% if prediction['shapefile_path'] %}
+          <a target="_blank" rel="noopener noreferrer" href="/download/{{prediction['shapefile_path']}}">Shapefile</a>
+        {% else %}
+          Shapefile не доступен, так как .tfw файл не был загружен
+        {% endif %}
+        <br>
+        <a target="_blank" rel="noopener noreferrer" href="/download/{{prediction['mask_path']}}">Маска вероятностей дорожек (numpy-массив)</a>
+        <br><br>
+      {% endfor %}
+    {% endif %}
   </form>
 </body>
 </html>

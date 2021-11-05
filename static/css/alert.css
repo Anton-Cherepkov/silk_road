@@ -1,0 +1,11 @@
+.warning {
+    padding: 20px;
+    background-color: #ff9800;
+    color: white;
+}
+
+.alert {
+    padding: 20px;
+    background-color: #f44336;
+    color: white;
+}
