@@ -32,6 +32,7 @@ from mmseg.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from mmseg.core.evaluation import get_palette
 
 from postprocessing.process import do_postprocessing, PostprocessingResult, polylines2shapefile, read_tfw_file, zip_and_remove
+from postprocessing.convert import shapefile_to_geojson
 
 
 FP_16_MODE = None
@@ -102,7 +103,8 @@ def create_folders():
     postprocessing_visualization_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "postprocessing_visualization")
     shapefiles_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "shapefiles")
     common_shapefiles_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "common_shapefiles")
-    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER, shapefiles_folder, common_shapefiles_folder]:
+    geojsons_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "geojsons_epsg4326")
+    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER, shapefiles_folder, common_shapefiles_folder, geojsons_folder]:
         os.makedirs(folder, exist_ok=True)
 
 
@@ -134,7 +136,7 @@ def predict(image, model, tfw_path: Optional[str]) -> Tuple[PredictionInformatio
     return prediction_info, postprocessing_result
 
 
-def predict_multiple(images: List[str], tfw_paths: List[Optional[str]], model) -> Tuple[List[PredictionInformation], Optional[str]]:
+def predict_multiple(images: List[str], tfw_paths: List[Optional[str]], model) -> Tuple[List[PredictionInformation], Optional[str], Optional[str]]:
     results = []
 
     for image, tfw_path in zip(images, tfw_paths):
@@ -155,14 +157,31 @@ def predict_multiple(images: List[str], tfw_paths: List[Optional[str]], model) -
         )
         polylines2shapefile(polylines, tfws, all_roads_shapefile)
         all_roads_shapefile = zip_and_remove(all_roads_shapefile)
-        all_roads_shapefile = os.path.relpath(
-            all_roads_shapefile,
-            PREDICTIONS_OUTPUT_FOLDER
-        )
-    else:
-        all_roads_shapefile = None 
+        
+        try:
+            all_road_geojson = os.path.join(
+                PREDICTIONS_OUTPUT_FOLDER,
+                "geojsons_epsg4326",
+                Path(all_roads_shapefile).stem + ".geojson",   
+            )
+            shapefile_to_geojson(
+                input=all_roads_shapefile,
+                output=all_road_geojson,
+                epsg=4326,
+            )
 
-    return prediction_infos, all_roads_shapefile
+            all_roads_shapefile = os.path.relpath(
+                all_roads_shapefile,
+                PREDICTIONS_OUTPUT_FOLDER
+            )
+            all_roads_geojson_id = Path(all_road_geojson).stem
+        except:
+            all_roads_geojson_id = None
+    else:
+        all_roads_shapefile = None
+        all_roads_geojson_id = None
+
+    return prediction_infos, all_roads_shapefile, all_roads_geojson_id
 
 
 def make_mapping_filename_to_file(files):
@@ -233,7 +252,7 @@ def upload_predict():
             tfws=tfws,
         )
 
-        prediction_infos, all_roads_shapefile = predict_multiple(
+        prediction_infos, all_roads_shapefile, all_roads_geojson_id = predict_multiple(
             images=saved_images,
             tfw_paths=saved_tfws,
             model=MODEL
@@ -251,6 +270,7 @@ def upload_predict():
         return render_template(
             "index.html",
             all_roads_shapefile=all_roads_shapefile,
+            all_roads_geojson_id=all_roads_geojson_id,
             predictions=prediction_infos,
             fp16_mode=fp16_mode,
             device=DEVICE,
@@ -269,6 +289,13 @@ def upload_predict():
 def download(filename):
     return send_file(os.path.join(PREDICTIONS_OUTPUT_FOLDER, filename))
 
+
+@app.route('/map/<id>')
+def show_map(id: str):
+    return render_template(
+        "map.html",
+        id=os.path.join("geojsons_epsg4326", id),
+    )
 
 def run_web_ui():
     global MODEL

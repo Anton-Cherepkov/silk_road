@@ -38,6 +38,10 @@
       {% endif %}
       {% if all_roads_shapefile %}
         <a target="_blank" rel="noopener noreferrer" href="/download/{{all_roads_shapefile}}">Общий shapefile для всех изображений</a>
+        {% if all_roads_geojson_id %}
+          <br>
+          <a target="_blank" rel="noopener noreferrer" href="/map/{{all_roads_geojson_id}}">Посмотреть на карте</a>
+        {% endif %}
         <br><br>
       {% endif %}
       {% for prediction in predictions %}
