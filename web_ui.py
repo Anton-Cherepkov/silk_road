@@ -12,6 +12,8 @@ from flask import send_file
 from typing import Optional, List, Tuple
 
 from argparse import ArgumentParser
+
+from numpy.lib.npyio import savetxt
 import torch
 import glob
 import os
@@ -199,6 +201,22 @@ def save_corresponding_images_and_tfws(images, tfws):
     return names, saved_images, saved_tfws
 
 
+def generate_warning_missing_tfws(names, saved_tfws):
+    names_with_missing_tfws = list()
+
+    for tfw, name in zip(saved_tfws, names):
+        if tfw is None:
+            names_with_missing_tfws.append(name)
+
+    msg = "Для этих изображений не были загружены tfw-файлы, "
+    msg += "поэтому Shapefile для них сгенерированы не будут: "
+    msg += ", ".join(names_with_missing_tfws)
+    msg += "."
+
+    if len(names_with_missing_tfws) > 0:
+        return msg
+
+
 app = Flask(__name__)
 
 MODEL = None
@@ -225,7 +243,10 @@ def upload_predict():
         for name, prediction_info in zip(names, prediction_infos):
             prediction_info["name"] = name
         
-        print(all_roads_shapefile)
+        warning_msgs = []
+        msg_missing_tfws = generate_warning_missing_tfws(names, saved_tfws)
+        if msg_missing_tfws is not None:
+            warning_msgs.append(msg_missing_tfws)
 
         return render_template(
             "index.html",
@@ -233,6 +254,7 @@ def upload_predict():
             predictions=prediction_infos,
             fp16_mode=fp16_mode,
             device=DEVICE,
+            warning_msgs=warning_msgs,
         )
 
     return render_template(

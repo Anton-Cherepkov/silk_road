@@ -30,7 +30,12 @@
     <button class="btn btn-lg btn-primary btn-block" type="submit">Обработать</button>
     <br><br>
     {% if predictions %}
-      <h4>Результаты:</h4><br>
+      <h4>Результаты:</h4>
+      {% if warning_msgs %}
+        {% for msg in warning_msgs %}
+          <div class="warning">{{msg}}</div><br>
+        {% endfor %}
+      {% endif %}
       {% if all_roads_shapefile %}
         <a target="_blank" rel="noopener noreferrer" href="/download/{{all_roads_shapefile}}">Общий shapefile для всех изображений</a>
         <br><br>
