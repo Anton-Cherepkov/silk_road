@@ -17,16 +17,18 @@ import os
 from pathlib import Path
 from tqdm.auto import tqdm
 from dataclasses import dataclass
+from itertools import chain
 # import sns
 import mmcv
 from mmcv.runner import wrap_fp16_model
 import cv2
 import numpy as np
+from datetime import datetime
 
 from mmseg.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from mmseg.core.evaluation import get_palette
 
-from postprocessing.process import do_postprocessing
+from postprocessing.process import do_postprocessing, PostprocessingResult, polylines2shapefile, read_tfw_file, zip_and_remove
 
 
 FP_16_MODE = None
@@ -101,7 +103,7 @@ def create_folders():
         os.makedirs(folder, exist_ok=True)
 
 
-def predict(image, model, tfw_path: Optional[str]) -> PredictionInformation:
+def predict(image, model, tfw_path: Optional[str]) -> Tuple[PredictionInformation, PostprocessingResult]:
     image_name = Path(image).stem
 
     mask = inference_segmentor(model, image)[0]
@@ -126,7 +128,32 @@ def predict(image, model, tfw_path: Optional[str]) -> PredictionInformation:
         postprocessing_result.postpocessing_visualization,
     )
 
-    return prediction_info
+    return prediction_info, postprocessing_result
+
+
+def predict_multiple(images: List[str], tfw_paths: List[Optional[str]], model) -> Tuple[List[PredictionInformation], Optional[str]]:
+    results = []
+
+    for image, tfw_path in zip(images, tfw_paths):
+        results.append(predict(image, model, tfw_path))
+
+    prediction_infos, postprocessing_results = zip(*results)
+
+    if any(tfw_paths):
+        polylines, tfws = zip(*[
+            (postprocessing_result.roads_curves, read_tfw_file(tfw_path))
+            for postprocessing_result, tfw_path in zip(postprocessing_results, tfw_paths)
+            if tfw_path is not None
+        ])
+        all_roads_shapefile = os.path.join(PREDICTIONS_OUTPUT_FOLDER, str(datetime.now()))
+        polylines2shapefile(polylines, tfws, all_roads_shapefile)
+        all_roads_shapefile = zip_and_remove(all_roads_shapefile)
+    else:
+        all_roads_shapefile = None 
+
+    return prediction_infos, all_roads_shapefile
+
+    
 
 
 app = Flask(__name__)
