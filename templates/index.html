@@ -11,10 +11,16 @@
 
     <!-- Custom styles for this template -->
     <link href="/static/css/form_upload.css" rel="stylesheet">
+    <link href="/static/css/alert.css" rel="stylesheet">
 </head>
 
 <body class="text-center">
   <form class="form-upload" method=post enctype=multipart/form-data>
+    {% if device == "cpu" %}
+      <div class="alert">
+        Не удалось подключиться к GPU. Возможно, не установлены необходимые драйвера CUDA.<br><br>Вычисления будут производиться на CPU, что приведет к замедлению работы.
+      </div>
+    {% endif %}
     <h1 class="h3 mb-3 font-weight-normal">Поиск пешеходных дорожек</h1>
     Изображения
     <input type="file" id="image" name ="image[]" accept=".png, .tif, .jpg, .jpeg" class="form-control" required autofocus multiple>

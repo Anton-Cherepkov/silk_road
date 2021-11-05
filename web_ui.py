@@ -12,6 +12,7 @@ from flask import send_file
 from typing import Optional, List, Tuple
 
 from argparse import ArgumentParser
+import torch
 import glob
 import os
 from pathlib import Path
@@ -32,6 +33,7 @@ from postprocessing.process import do_postprocessing, PostprocessingResult, poly
 
 
 FP_16_MODE = None
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 PREDICTIONS_OUTPUT_FOLDER = "static/predictions"
 UPLOAD_FOLDER = 'static/uploads'
@@ -50,8 +52,6 @@ def get_args():
     parser.add_argument('config', help='Config file')
     parser.add_argument('checkpoint', help='Checkpoint file')
     parser.add_argument('--fp16', type=bool, default=False)
-    parser.add_argument(
-        '--device', default='cuda:0', help='Device used for inference')
     args = parser.parse_args()
     return args
 
@@ -84,7 +84,7 @@ def init_segmentation_model():
     cfg.model.test_cfg['mode'] = 'slide'
     cfg.model.test_cfg['stride'] = (512, 512)
     cfg.model.test_cfg['crop_size'] = (512, 512)
-    model = init_segmentor(cfg, args.checkpoint, device=args.device)
+    model = init_segmentor(cfg, args.checkpoint, device=DEVICE)
     global fp16_mode
     if args.fp16:
         wrap_fp16_model(model)
@@ -201,7 +201,6 @@ def save_corresponding_images_and_tfws(images, tfws):
 
 app = Flask(__name__)
 
-DEVICE = "cuda"
 MODEL = None
 
 
@@ -232,10 +231,16 @@ def upload_predict():
             "index.html",
             all_roads_shapefile=all_roads_shapefile,
             predictions=prediction_infos,
-            fp16_mode=fp16_mode
+            fp16_mode=fp16_mode,
+            device=DEVICE,
         )
 
-    return render_template("index.html", predictions=[], fp16_mode=fp16_mode)
+    return render_template(
+        "index.html",
+        predictions=[],
+        fp16_mode=fp16_mode,
+        device=DEVICE,
+    )
 
 
 @app.route('/download/<path:filename>', methods=['GET', 'POST'])
