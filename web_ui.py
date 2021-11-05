@@ -16,7 +16,7 @@ import glob
 import os
 from pathlib import Path
 from tqdm.auto import tqdm
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 # import sns
 import mmcv
 from mmcv.runner import wrap_fp16_model
@@ -163,17 +163,15 @@ def upload_predict():
                 model=MODEL
             )
 
+            prediction_info_dict = asdict(prediction_info)
+
             return render_template(
                 "index.html",
-                image_loc=os.path.join(PREDICTIONS_OUTPUT_FOLDER, prediction_info.visualization_path),
-                visualization_path=prediction_info.visualization_path,
-                postprocessing_visualization_path=prediction_info.postprocessing_visualization_path,
-                mask_path=prediction_info.mask_path,
-                shapefile_path=prediction_info.shapefile_path,
+                predictions=[prediction_info_dict],
                 fp16_mode=fp16_mode
             )
 
-    return render_template("index.html",prediction = 0, image_loc=None, fp16_mode=fp16_mode)
+    return render_template("index.html", predictions=[], fp16_mode=fp16_mode)
 
 
 @app.route('/download/<path:filename>', methods=['GET', 'POST'])
