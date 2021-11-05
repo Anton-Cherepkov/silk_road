@@ -82,7 +82,7 @@ def init_segmentation_model():
     args = get_args()
     cfg = mmcv.Config.fromfile(args.config)
     cfg.model.test_cfg['mode'] = 'slide'
-    cfg.model.test_cfg['stride'] = (200, 200)
+    cfg.model.test_cfg['stride'] = (512, 512)
     cfg.model.test_cfg['crop_size'] = (512, 512)
     model = init_segmentor(cfg, args.checkpoint, device=args.device)
     global fp16_mode
@@ -99,7 +99,8 @@ def create_folders():
     visualizations_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "visualization")
     postprocessing_visualization_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "postprocessing_visualization")
     shapefiles_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "shapefiles")
-    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER, shapefiles_folder]:
+    common_shapefiles_folder = os.path.join(PREDICTIONS_OUTPUT_FOLDER, "common_shapefiles")
+    for folder in [masks_folder, visualizations_folder, postprocessing_visualization_folder, UPLOAD_FOLDER, shapefiles_folder, common_shapefiles_folder]:
         os.makedirs(folder, exist_ok=True)
 
 
@@ -145,13 +146,57 @@ def predict_multiple(images: List[str], tfw_paths: List[Optional[str]], model) -
             for postprocessing_result, tfw_path in zip(postprocessing_results, tfw_paths)
             if tfw_path is not None
         ])
-        all_roads_shapefile = os.path.join(PREDICTIONS_OUTPUT_FOLDER, str(datetime.now()))
+        all_roads_shapefile = os.path.join(
+            PREDICTIONS_OUTPUT_FOLDER,
+            "common_shapefiles",
+            datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        )
         polylines2shapefile(polylines, tfws, all_roads_shapefile)
         all_roads_shapefile = zip_and_remove(all_roads_shapefile)
+        all_roads_shapefile = os.path.relpath(
+            all_roads_shapefile,
+            PREDICTIONS_OUTPUT_FOLDER
+        )
     else:
         all_roads_shapefile = None 
 
     return prediction_infos, all_roads_shapefile
+
+
+def make_mapping_filename_to_file(files):
+    mapping = dict()
+    for file in files:
+        mapping[Path(file.filename).stem] = file
+    return mapping
+
+
+def save_corresponding_images_and_tfws(images, tfws):
+    names_to_images = make_mapping_filename_to_file(images)
+    names_to_tfws = make_mapping_filename_to_file(tfws)
+
+    saved_images = []
+    saved_tfws = []
+
+    for name, image in names_to_images.items():
+        image_loc = os.path.join(UPLOAD_FOLDER, image.filename)
+        image.save(image_loc)
+
+        tfw = names_to_tfws.get(name)
+        if tfw:
+            tfw_loc = os.path.join(UPLOAD_FOLDER, tfw.filename)
+            tfw.save(tfw_loc)
+        else:
+            tfw_loc = None
+        
+        saved_images.append(image_loc)
+        saved_tfws.append(tfw_loc)
+
+    names = [
+        Path(path).stem
+        for path in saved_images
+    ]
+
+    return names, saved_images, saved_tfws
 
 
 app = Flask(__name__)
@@ -163,38 +208,32 @@ MODEL = None
 @app.route("/", methods = ["GET","POST"])
 def upload_predict():
     if request.method == "POST":
-        image_file = request.files['image']
-        tfw_file = request.files['tfw']
+        images = request.files.getlist("image[]")
+        tfws = request.files.getlist("tfw[]")
 
-        if image_file:
-            image_location = os.path.join( 
-                UPLOAD_FOLDER,
-                image_file.filename
-            )
-            image_file.save(image_location)
+        names, saved_images, saved_tfws = save_corresponding_images_and_tfws(
+            images=images,
+            tfws=tfws,
+        )
 
-            if tfw_file:
-                tfw_location = os.path.join(
-                    UPLOAD_FOLDER,
-                    tfw_file.filename
-                )
-                tfw_file.save(tfw_location)
-            else:
-                tfw_location = None
+        prediction_infos, all_roads_shapefile = predict_multiple(
+            images=saved_images,
+            tfw_paths=saved_tfws,
+            model=MODEL
+        )
 
-            prediction_infos, _ = predict_multiple(
-                images=[image_location],
-                tfw_paths=[tfw_location],
-                model=MODEL
-            )
+        prediction_infos = list(map(asdict, prediction_infos))
+        for name, prediction_info in zip(names, prediction_infos):
+            prediction_info["name"] = name
+        
+        print(all_roads_shapefile)
 
-            prediction_infos = list(map(asdict, prediction_infos))
-
-            return render_template(
-                "index.html",
-                predictions=prediction_infos,
-                fp16_mode=fp16_mode
-            )
+        return render_template(
+            "index.html",
+            all_roads_shapefile=all_roads_shapefile,
+            predictions=prediction_infos,
+            fp16_mode=fp16_mode
+        )
 
     return render_template("index.html", predictions=[], fp16_mode=fp16_mode)
 
