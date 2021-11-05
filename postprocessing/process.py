@@ -163,9 +163,12 @@ def img_to_ske_G(
 def nx2polyline(G):
     curves = []
     for src, dst in G.edges():
-        curves.append(
-            G[src][dst][0]["pts"][:, ::-1].astype(np.int32)
-        )
+        points = G[src][dst][0]["pts"][:, ::-1].astype(np.int32)
+
+        if len(points) > 1:
+            curves.append(
+                points
+            )
     
     return curves
 
