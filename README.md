@@ -73,9 +73,10 @@ https://releases.ubuntu.com/18.04/ubuntu-18.04.6-desktop-amd64.iso
 Инструкция по установке доступна, например, тут: https://losst.ru/ustanovka-ubuntu-18-04
 
 2. Установите драйвера CUDA 11.1
-* Выполните команду
+* Выполните команды
 ```
-sudo apt install gcc
+sudo apt-get -y install gcc
+sudo apt-get -y install make
 ```
 * Выполните команду
 
