@@ -143,3 +143,5 @@ sudo systemctl restart docker
 6. Для запуска веб интерфейса выполните команду:
 
 `sudo docker run --gpus all -d -p 8011:8011 silk_road`
+
+7. Подождите некоторое время и перейдите по адресу http://localhost:8011/.
