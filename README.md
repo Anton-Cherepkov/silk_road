@@ -74,6 +74,10 @@ https://releases.ubuntu.com/18.04/ubuntu-18.04.6-desktop-amd64.iso
 
 2. Установите драйвера CUDA 11.1
 * Выполните команду
+```
+sudo apt install gcc
+```
+* Выполните команду
 
 `wget https://developer.download.nvidia.com/compute/cuda/11.1.0/local_installers/cuda_11.1.0_455.23.05_linux.run`
 
