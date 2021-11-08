@@ -73,16 +73,19 @@ https://releases.ubuntu.com/18.04/ubuntu-18.04.6-desktop-amd64.iso
 Инструкция по установке доступна, например, тут: https://losst.ru/ustanovka-ubuntu-18-04
 
 2. Установите драйвера CUDA 11.1
-* Выполните команды
-```
-sudo apt-get -y install gcc
-sudo apt-get -y install make
-```
+* Выполните команду
+
+`sudo apt-get -y install gcc make`
+
 * Выполните команду
 
 `wget https://developer.download.nvidia.com/compute/cuda/11.1.0/local_installers/cuda_11.1.0_455.23.05_linux.run`
 
 * Выполните команду
+
+`sudo sh cuda_11.1.0_455.23.05_linux.run`
+
+* На данном этапе может появиться сообщение о том, что установка не удалась. В таком случае перезагрузите компьютер и снова выполните установку с помощью команды:
 
 `sudo sh cuda_11.1.0_455.23.05_linux.run`
 
