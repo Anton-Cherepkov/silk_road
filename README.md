@@ -98,7 +98,7 @@ https://releases.ubuntu.com/18.04/ubuntu-18.04.6-desktop-amd64.iso
 sudo apt-get update
 ```
 ```
-sudo apt-get install \
+sudo apt-get -y install \
     ca-certificates \
     curl \
     gnupg \
@@ -116,7 +116,7 @@ echo \
 sudo apt-get update
 ```
 ```
-sudo apt-get install docker-ce docker-ce-cli containerd.io
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 ```
 * Перезагрузите компьютер
 * Чтобы убедиться, что установка Docker прошла успешно, выполните
