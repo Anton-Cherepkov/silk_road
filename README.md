@@ -64,7 +64,8 @@
 0. Системные требования к компьютеру:
 * 16 ГБ ОЗУ
 * NVIDIA видеокарта с объемом видеопамяти не менее 4 ГБ и Compute capability от 3.5 до 8.6  (большинство современных видеокарт, полное сопоставление Compute capability и поддерживаемых видеокарт см. тут: https://en.wikipedia.org/wiki/CUDA#GPUs_supported)
-* Жесткий диск с объемом памяти не менее 64 ГБ.
+* Жесткий диск с объемом памяти не менее 64 ГБ
+* Подключение к сети Интернет
 
 1. Выполните установку Ubuntu 18.04.6 AMD64. Скачать дистрибутив данной ОС можно тут: 
 
@@ -123,7 +124,7 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 ```
 sudo docker run hello-world
 ```
-Выполните следующие команды:
+* Выполните следующие команды:
 ```
 curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | \
   sudo apt-key add -
