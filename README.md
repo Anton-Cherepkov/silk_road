@@ -65,3 +65,52 @@
 
 ### Как контрольную компиляцию всего этого добра делать - не написано - в процессе написания
 
+### Инструкция по контрольной компиляции
+1. Выполните установку Ubuntu 18.04.6 AMD64. Скачать дистрибутив данной ОС можно тут: 
+
+https://releases.ubuntu.com/18.04/ubuntu-18.04.6-desktop-amd64.iso
+
+Инструкция по установке доступна, например, тут: https://losst.ru/ustanovka-ubuntu-18-04
+
+2. Установите драйвера CUDA 11.1
+* Выполните команду
+
+`wget https://developer.download.nvidia.com/compute/cuda/11.1.0/local_installers/cuda_11.1.0_455.23.05_linux.run`
+
+* Выполните команду
+
+`sudo sh cuda_11.1.0_455.23.05_linux.run`
+
+* Перезагрузите компьютер
+
+3. Установите Docker
+* Выполните поочередно следующие команды
+```
+sudo apt-get update
+```
+```
+sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+```
+```
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+```
+```
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+```
+sudo apt-get update
+```
+```
+sudo apt-get install docker-ce docker-ce-cli containerd.io
+```
+* Перезагрузите компьютер
+* Чтобы убедиться, что установка Docker прошла успешно, выполните
+```
+sudo docker run hello-world
+```
