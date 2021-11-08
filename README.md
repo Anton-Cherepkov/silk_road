@@ -114,3 +114,12 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io
 ```
 sudo docker run hello-world
 ```
+4. Склонируйте или скачайте текущий репозиторий
+
+5. Для сборки docker-контейнера перейдите в корневую папку проекта и выполните:
+
+`docker build . -t silk_road`
+
+6. Для запуска веб интерфейса выполните команду:
+
+`docker run --gpus all -d -p 8011:8011 silk_road`
